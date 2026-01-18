@@ -1,0 +1,12 @@
+transaction_date,amount,currency,type,category,description,source
+2024-01-05,1250.00,USD,expense,Rent,Office rent January,manual_upload
+2024-01-06,320.45,USD,expense,Utilities,Electricity bill December,manual_upload
+2024-01-07,89.30,USD,expense,Supermarket,Office groceries,manual_upload
+2024-01-10,5400.00,USD,income,Salary,Client payment - Project Alpha,manual_upload
+2024-01-12,150.00,USD,expense,Utilities,Internet service,manual_upload
+2024-01-15,230.75,USD,expense,Supermarket,Team lunch supplies,manual_upload
+2024-01-20,5600.00,USD,income,Salary,Client payment - Project Beta,manual_upload
+2024-01-22,75.99,USD,expense,Other,Office supplies,manual_upload
+2024-02-01,1250.00,USD,expense,Rent,Office rent February,manual_upload
+2024-02-03,340.10,USD,expense,Utilities,Electricity bill January,manual_upload
+2024-02-05,95.60,USD,expense,Supermarket,Coffee and snacks,manual_upload

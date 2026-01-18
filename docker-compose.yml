@@ -1,0 +1,101 @@
+services:
+
+  postgresql:
+    image: postgres:14.2
+    container_name: postgresql
+    expose:
+      - "5432"
+    ports:
+      - "5432:5432"
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=data
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+      - ./sql:/sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: ["microservices"]
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: developer@peperina.io
+      PGADMIN_DEFAULT_PASSWORD: passpeperina
+    ports:
+      - "5050:80"
+    networks: ["microservices"]
+
+  python:
+    image: python-fastapi:latest
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: python_fastapi
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    networks: ["microservices"]
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports: ["11434:11434"]
+    volumes:
+      - ./model_files:/model_files  # Mount the directory with the trained mode
+    pull_policy: always
+    tty: true
+    restart: unless-stopped
+    #entrypoint: ["/bin/sh", "/model_files/run_ollama.sh"] # Loading the finetuned Mistral with the GGUF file
+    networks: ["microservices"]
+
+    # Uncomment below to run on GPU support
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: ${OLLAMA_GPU_DRIVER-nvidia}
+    #           count: ${OLLAMA_GPU_COUNT-1}
+    #           capabilities:
+    #             - gpu
+
+  ollama-webui:
+    image: ghcr.io/ollama-webui/ollama-webui:main
+    container_name: ollama-webui
+    ports: ["3000:8080"]
+    volumes:
+      - ollama-webui:/app/backend/data
+    depends_on:
+      - ollama
+    environment:
+      - 'OLLAMA_API_BASE_URL=http://ollama:11434/api'
+    restart: unless-stopped
+    networks: ["microservices"]
+  
+  chromadb:
+      image: chromadb/chroma:0.6.3
+      volumes:
+        - ./chromadb:/chroma/chroma
+      environment:
+        - IS_PERSISTENT=TRUE
+        - PERSIST_DIRECTORY=/chroma/chroma # this is the default path, change it as needed
+        - ANONYMIZED_TELEMETRY=${ANONYMIZED_TELEMETRY:-TRUE}
+      ports:
+        - 8012:8012
+      networks: ["microservices"]
+
+
+volumes:
+  ollama: {}
+  ollama-webui: {}
+  
+networks:
+  microservices:
+    name: microservices

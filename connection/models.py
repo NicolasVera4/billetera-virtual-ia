@@ -50,7 +50,7 @@ class Transaction(Base):
     transaction_date = Column(Date, nullable=False)
     amount = Column(Numeric(14, 2), nullable=False)
     currency = Column(String(10), default="USD")
-    type = Column(Enum(TransactionType), nullable=False)
+    type = Column(Enum(TransactionType, name="transaction_type", create_type=False), nullable=False)
     description = Column(Text)
     created_at = Column(DateTime, server_default=func.current_timestamp())
 
@@ -65,7 +65,7 @@ class Document(Base):
 
     id = Column(Integer, primary_key=True)
     source_id = Column(Integer, ForeignKey("sources.id"))
-    document_type = Column(Enum(DocumentType), nullable=False)
+    document_type = Column(Enum(DocumentType, name="document_type", create_type=False), nullable=False)
     provider = Column(Text)
     document_date = Column(Date)
     total_amount = Column(Numeric(14, 2))

@@ -1,20 +1,22 @@
 import io
 import os
 import requests
-import pandas as pd
 from fastapi import FastAPI, File, UploadFile, APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from connection.database import get_db
-from connection.models import Category, Transaction, Source, TransactionType, Document, DocumentType
+from connection.models import Document, DocumentType
 from pypdf import PdfReader
 from datetime import datetime
+import chromadb
 
 router_docs = APIRouter()
 UPLOAD_DIR = "/app/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 OLLAMA_URL = "http://ollama:11434/api/embed"                                                                                     
-                                                                                                                                                                
+CHROMA_CLIENT = chromadb.HttpClient(host='chromadb', port=8000)
+COLLECTION = CHROMA_CLIENT.get_or_create_collection(name="documents")
+
 def get_embedding(text: str) -> list:                                                                                                                         
       response = requests.post(                                                                                                                                 
           OLLAMA_URL,                                                                                                                                           
@@ -60,6 +62,17 @@ async def upload_docs(file: UploadFile = File(...), db: Session = Depends(get_db
     db.refresh(documents)
 
     embedding = get_embedding(text)
+
+    COLLECTION.add(                                                                                                                                               
+        ids=[str(documents.id)],                                                                                                                                  
+        embeddings=[embedding],                                                                                                                                   
+        metadatas=[{                                                                                                                                              
+            "document_id": documents.id,                                                                                                                          
+            "file_path": documents.file_path,                                                                                                                     
+            "document_type": "invoice"                                                                                                                            
+        }],                                                                                                                                                       
+        documents=[text[:8000]]                                                                                                    
+    )  
 
     return {                                                                                                                                                      
       "id": documents.id,                                                                                                                                        

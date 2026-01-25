@@ -1,7 +1,7 @@
 fastapi
 uvicorn
 requests==2.31.0
-chromadb
+chromadb==0.6.3
 sqlalchemy
 psycopg2-binary
 pandas

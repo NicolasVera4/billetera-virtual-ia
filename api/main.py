@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from connection.database import get_db
 from connection.models import Category, Transaction, Source
-from api.read_csv import router
+from api.read_docs import router
 from api.storage_docs import router_docs
 from api.search_docs import search
 from api.ask_user import router_rag

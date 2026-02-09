@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# Data - ignorar archivos pesados
+data/*.csv
+data/*.xlsx
+!data/transactions.csv
+!data/movimientos_mixto.csv
+
+# Docker volumes
+pgdata/
+chromadb/
+uploads/
+model_files/
+
+# Environment
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -50,7 +50,6 @@ services:
     ports: ["11434:11434"]
     volumes:
       - ./model_files:/model_files  # Mount the directory with the trained mode
-      - ollama_data:/root/.ollama
     pull_policy: always
     tty: true
     restart: unless-stopped

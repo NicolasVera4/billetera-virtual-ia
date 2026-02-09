@@ -4,6 +4,7 @@ requests==2.31.0
 chromadb==0.6.3
 sqlalchemy
 psycopg2-binary
+openpyxl
 pandas
 python-multipart
 pypdf

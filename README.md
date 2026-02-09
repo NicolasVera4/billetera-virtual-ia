@@ -77,10 +77,6 @@ El agente decide automaticamente que herramienta usar segun la pregunta:
 
 ![Modelo de datos](image/modelo_de_datos.png)
 
-**Tipos enumerados:**
-- `transaction_type`: income, expense
-- `document_type`: invoice, receipt, statement, other
-
 ## Requisitos
 
 - Docker y Docker Compose

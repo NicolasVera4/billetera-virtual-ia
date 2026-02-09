@@ -1,0 +1,69 @@
+Fecha_Operación,Descripción,Importe,Tipo_Movimiento,Moneda,Referencia
+2024-03-01,Alquiler oficina Marzo,-1500.00,Débito,USD,REF-001
+2024-03-01,Sueldo mensual,4200.00,Crédito,USD,REF-002
+2024-03-02,Supermercado Carrefour,-87.50,Débito,USD,REF-003
+2024-03-02,Factura electricidad,-210.30,Débito,USD,REF-004
+2024-03-03,Pago cliente - Proyecto Web,3500.00,Crédito,USD,REF-005
+2024-03-04,Gasolina estación Shell,-65.00,Débito,USD,REF-006
+2024-03-05,Netflix suscripción,-15.99,Débito,USD,REF-007
+2024-03-05,Spotify suscripción,-9.99,Débito,USD,REF-008
+2024-03-06,Farmacia San Pablo,-45.20,Débito,USD,REF-009
+2024-03-07,Transferencia recibida - Juan Pérez,800.00,Crédito,USD,REF-010
+2024-03-08,Restaurante El Buen Sabor,-62.40,Débito,USD,REF-011
+2024-03-09,Uber viaje centro,-18.75,Débito,USD,REF-012
+2024-03-10,Amazon compra electrónica,-149.99,Débito,USD,REF-013
+2024-03-11,Seguro médico mensual,-320.00,Débito,USD,REF-014
+2024-03-12,Pago freelance diseño,1200.00,Crédito,USD,REF-015
+2024-03-13,Gimnasio mensualidad,-45.00,Débito,USD,REF-016
+2024-03-14,Agua potable,-38.60,Débito,USD,REF-017
+2024-03-14,Gas natural,-52.10,Débito,USD,REF-018
+2024-03-15,Sueldo quincenal,2100.00,Crédito,USD,REF-019
+2024-03-16,Papelería y útiles oficina,-33.80,Débito,USD,REF-020
+2024-03-17,Café Starbucks,-8.50,Débito,USD,REF-021
+2024-03-17,Lavandería Express,-22.00,Débito,USD,REF-022
+2024-03-18,Dentista consulta,-150.00,Débito,USD,REF-023
+2024-03-19,Venta producto MercadoLibre,340.00,Crédito,USD,REF-024
+2024-03-20,Supermercado Walmart,-112.35,Débito,USD,REF-025
+2024-03-21,Internet fibra óptica,-55.00,Débito,USD,REF-026
+2024-03-22,Estacionamiento centro,-12.00,Débito,USD,REF-027
+2024-03-23,Pago cliente - App Móvil,4800.00,Crédito,USD,REF-028
+2024-03-24,Tintorería trajes,-35.00,Débito,USD,REF-029
+2024-03-25,Librería compra libros,-67.90,Débito,USD,REF-030
+2024-03-26,Peluquería,-25.00,Débito,USD,REF-031
+2024-03-27,Donación Cruz Roja,-50.00,Débito,USD,REF-032
+2024-03-28,Reembolso seguro,180.00,Crédito,USD,REF-033
+2024-03-29,Cena familiar restaurante,-95.00,Débito,USD,REF-034
+2024-03-30,Taxi aeropuerto,-42.00,Débito,USD,REF-035
+2024-03-31,Mantenimiento auto,-280.00,Débito,USD,REF-036
+2024-04-01,Alquiler oficina Abril,-1500.00,Débito,USD,REF-037
+2024-04-01,Sueldo mensual,4200.00,Crédito,USD,REF-038
+2024-04-02,Supermercado Carrefour,-95.20,Débito,USD,REF-039
+2024-04-03,Factura electricidad,-198.45,Débito,USD,REF-040
+2024-04-04,Pago cliente - Rediseño Logo,2200.00,Crédito,USD,REF-041
+2024-04-05,Gasolina estación YPF,-58.30,Débito,USD,REF-042
+2024-04-06,Disney+ suscripción,-12.99,Débito,USD,REF-043
+2024-04-07,Veterinario consulta,-85.00,Débito,USD,REF-044
+2024-04-08,Ferretería materiales,-43.60,Débito,USD,REF-045
+2024-04-09,Transferencia recibida - María López,650.00,Crédito,USD,REF-046
+2024-04-10,Zapatería calzado,-89.99,Débito,USD,REF-047
+2024-04-11,Seguro médico mensual,-320.00,Débito,USD,REF-048
+2024-04-12,Comisión bancaria,-15.00,Débito,USD,REF-049
+2024-04-13,Reparación laptop,-175.00,Débito,USD,REF-050
+2024-04-14,Pago freelance consultoría,1800.00,Crédito,USD,REF-051
+2024-04-15,Sueldo quincenal,2100.00,Crédito,USD,REF-052
+2024-04-16,Supermercado Día,-76.40,Débito,USD,REF-053
+2024-04-17,Cine entradas,-24.00,Débito,USD,REF-054
+2024-04-18,Agua potable,-41.20,Débito,USD,REF-055
+2024-04-18,Gas natural,-48.90,Débito,USD,REF-056
+2024-04-19,Parque diversiones,-60.00,Débito,USD,REF-057
+2024-04-20,Venta producto online,215.00,Crédito,USD,REF-058
+2024-04-21,Gimnasio mensualidad,-45.00,Débito,USD,REF-059
+2024-04-22,Panadería y pastelería,-18.50,Débito,USD,REF-060
+2024-04-23,Pago cliente - SEO mensual,1500.00,Crédito,USD,REF-061
+2024-04-24,Teléfono celular plan,-40.00,Débito,USD,REF-062
+2024-04-25,Verdulería orgánica,-32.70,Débito,USD,REF-063
+2024-04-26,Curso online Udemy,-49.99,Débito,USD,REF-064
+2024-04-27,Limpieza hogar productos,-28.40,Débito,USD,REF-065
+2024-04-28,Intereses plazo fijo,125.00,Crédito,USD,REF-066
+2024-04-29,Ropa temporada,-135.00,Débito,USD,REF-067
+2024-04-30,Multa tránsito,-80.00,Débito,USD,REF-068

@@ -3,6 +3,10 @@ FROM python:3.11.9-slim
 WORKDIR /app
 
 COPY docker/requirements.txt .
+RUN apt-get update && apt-get install -y \
+    tesseract-ocr \
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .

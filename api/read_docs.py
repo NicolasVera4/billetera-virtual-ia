@@ -114,7 +114,11 @@ def transform_and_insert(df: pd.DataFrame, mapping: dict, db: Session) -> dict:
       unique_descs = df[desc_col].dropna().astype(str).unique()[:50]                                                                                            
       existing_cats = [c.name for c in db.query(Category).all()]                                                                                                
       classification = classify_descriptions_batch(list(unique_descs), existing_cats)                                                                           
-                                                                                                                                                                
+
+      inserted = 0
+      skipped = 0
+      errors = []
+
       cat_cache = {}                                                                                                                                            
       for desc, cat_name in classification.items():                                                                                                             
           cat_cache[desc] = get_or_create_category(cat_name, db)                                                                                                
@@ -161,7 +165,18 @@ def transform_and_insert(df: pd.DataFrame, mapping: dict, db: Session) -> dict:
                   type=TransactionType(tx_type),                                                                                                                
                   description=description,                                                                                                                      
                   category_id=category_id,                                                                                                                      
-              )                                                                                                                                                 
+              ) 
+
+              existing = db.query(Transaction).filter(
+                  Transaction.transaction_date == tx_date,
+                  Transaction.amount == amount,
+                  Transaction.description == description
+              ).first()
+              if existing:
+                  errors.append(f"Row {idx}:  duplicado ignorado ({description})")
+                  skipped += 1
+                  continue
+              
               db.add(tx)                                                                                                                                        
               inserted += 1                                                                                                                                     
           except Exception as e:                                                                                                                                
@@ -171,7 +186,8 @@ def transform_and_insert(df: pd.DataFrame, mapping: dict, db: Session) -> dict:
                                                                                                                                                                 
       result = {                                                                                                                                                
           "message": f"Successfully inserted {inserted} transactions",                                                                                          
-          "inserted": inserted,                                                                                                                                 
+          "inserted": inserted,
+          "skipped_duplicates": skipped,                                                                                                                                 
           "categories_created": len(classification),                                                                                                            
       }                                                                                                                                                         
       if errors:                                                                                                                                                

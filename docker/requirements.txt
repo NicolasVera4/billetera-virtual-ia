@@ -8,3 +8,6 @@ openpyxl
 pandas
 python-multipart
 pypdf
+pytesseract
+pdf2image
+Pillow

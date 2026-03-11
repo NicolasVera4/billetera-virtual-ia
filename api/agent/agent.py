@@ -8,24 +8,37 @@ OLLAMA_URL = "http://ollama:11434/api/generate"
 
 def build_system_prompt() -> str:                                                                                                                                                                                                                      
       tools_desc = "\n".join([                                                                                                                                  
-          f"- {t['name']}: {t['description']}"                                                                                                                  
+          f"- {t['name']}: {t['description']} | Parametros: {t['parameters']}"                                                                                                                  
           for t in TOOLS                                                                                                                                        
       ])                                                                                                                                                        
                                                                                                                                                                 
-      return f"""Eres un asistente financiero. Tienes acceso a estas herramientas:                                                                              
-                                                                                                                                                                
-                {tools_desc}                                                                                                                                                  
-                                                                                                                                                                                
-                Para responder, SIEMPRE debes:                                                                                                                                
-                1. Analizar qué herramienta necesitas                                                                                                                         
-                2. Responder en formato JSON exacto:                                                                                                                          
-                                                                                                                                                                                
-                {{"tool": "nombre_de_tool", "params": {{"param1": "valor1"}}}}                                                                                                
-                                                                                                                                                                                
-                Si no necesitas herramienta, responde:                                                                                                                        
-                {{"tool": "none", "params": {{}}, "answer": "tu respuesta directa"}}                                                                                          
-                                                                                                                                                                                
-                IMPORTANTE: Responde SOLO el JSON, nada más.""" 
+      return f"""Eres un asistente financiero inteligente. Tienes acceso a estas herramientas:
+
+               {tools_desc}
+
+               REGLAS PARA ELEGIR HERRAMIENTA:
+
+               1. Si el usuario pregunta cuánto gastó, cuánto ingresó, balance o saldo de un periodo especifico -> usa "get_summary" con month y year
+               2. Si menciona un mes o período específico (ej: "en marzo", "este mes") -> usa "query_transactions" con month y year
+               3. Si pregunta por una categoría específica (ej: "gastos de Rent") -> usa "query_transactions" con category
+               4. Si pregunta qué categorías tiene -> usa "list_categories"
+               5. Si pregunta sobre documentos o facturas -> usa "search_documents"
+               6. Si el usuario dice que gastó, pagó, compró o cobró algo -> usa "insert_transaction"
+                    - "gasté 500 en el super" -> amount=500, type=expense, description=lo que compró, category=categoría apropiada
+                    - "cobré 3000 del cliente" -> amount=3000, type=income, description=lo que describe
+                    - Si no menciona fecha, NO envíes date_str (se usará la fecha de hoy)
+                    - Palabras clave expense: gasté, pagué, compré, me cobraron
+                    - Palabras clave income: cobré, recibí, me pagaron, me transfirieron
+               7- Si pregunta cual fue el mayor gasto o la transaccion mas cara -> usa "get_max_expense"
+
+               FORMATO DE RESPUESTA - responde SOLO con este JSON:
+
+               {{"tool": "nombre_de_tool", "params": {{"param1": "valor1"}}}}
+
+               Si no necesitas herramienta:
+               {{"tool": "none", "params": {{}}, "answer": "tu respuesta directa"}}
+
+               IMPORTANTE: Responde SOLO el JSON, sin texto adicional."""
 
 def parse_tool_response(response: str) -> dict:
      try:

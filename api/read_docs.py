@@ -17,7 +17,7 @@ def call_llm(prompt: str) -> str:
      response = requests.post(
           OLLAMA_URL,
           json={
-               "model": "mistral:7b",
+               "model": "qwen2.5:3b",
                "prompt": prompt,
                "stream": False
           }
@@ -111,9 +111,49 @@ def transform_and_insert(df: pd.DataFrame, mapping: dict, db: Session) -> dict:
       amount_expense_col = mapping.get("amount_expense")                                                                                                        
       amount_income_col = mapping.get("amount_income")                                                                                                          
                                                                                                                                                                 
-      unique_descs = df[desc_col].dropna().astype(str).unique()[:50]                                                                                            
-      existing_cats = [c.name for c in db.query(Category).all()]                                                                                                
-      classification = classify_descriptions_batch(list(unique_descs), existing_cats)                                                                           
+                                                                       
+
+      new_rows_exist = False
+      
+      for _, row in df.iterrows():
+          try:
+              tx_date = pd.to_datetime(row[date_col]).date()
+              description = str(row[desc_col]) if pd.notna(row[desc_col]) else ""
+
+              if amount_col and pd.notna(row.get(amount_col)):
+                  amount = abs(float(row[amount_col]))
+              elif amount_expense_col or amount_income_col:
+                  exp_val = float(row.get(amount_expense_col, 0) or 0) if amount_expense_col else 0
+                  inc_val = float(row.get(amount_income_col, 0) or 0) if amount_income_col else 0
+                  amount = abs(inc_val) if inc_val > 0 else abs(exp_val)
+              else:
+                  continue
+              
+              existing = db.query(Transaction).filter(
+                  Transaction.transaction_date == tx_date,
+                  Transaction.amount == amount,
+                  Transaction.description == description
+              ).first()
+              if not existing:
+                  new_rows_exist = True
+                  break
+          except:
+              new_rows_exist = True
+              break
+      if not new_rows_exist:
+          return {
+              "message": "No hay transacciones nuevas, todos son duplicados",
+              "inserted": 0,
+              "skipped_duplicates": len(df),
+              "categories_created": 0,
+              "errors": [],
+              "columns_detected": list(df.columns),
+              "mapping_used": mapping
+          }
+
+      unique_descs = df[desc_col].dropna().astype(str).unique()[:50]
+      existing_cats = [c.name for c in db.query(Category).all()]
+      classification = classify_descriptions_batch(list(unique_descs), existing_cats)
 
       inserted = 0
       skipped = 0

@@ -40,7 +40,25 @@ TOOLS = [
            "name": "get_max_expense",
            "description": "Obtiene el mayor gasto registrado. Usar cuando preguntan cual fue el mayor gasto, la transaccion mas cara o ell gasto mas alto.",
            "parameters": ["month", "year"]
-      }                                                                                                                                                         
+      },  
+      {
+           "name": "get_max_income",
+           "description": "Obtiene el mayor ingreso registrado. Acepta filtros opcionales de mes y año.",
+           "parameters": {
+                "month": "numero de mes (1-12), opcional",
+                "year": "año (ej: 2026), opcional"
+           }
+      },
+      {                                                                                                                                                           
+           "name": "get_top_expenses",                                                                                                                               
+           "description": "Obtiene los N gastos más altos ordenados por monto. Usar cuando preguntan por los mayores gastos, los más caros o top gastos.",           
+           "parameters": ["limit", "month", "year"]                                                                                                                  
+      },                                                                                                                                                            
+      {                                                                                                                                                             
+           "name": "get_category_summary",                                                                                                                           
+           "description": "Obtiene un resumen detallado de una categoría: total, cantidad, promedio y detalle de transacciones.",                                  
+           "parameters": ["category", "month", "year"]                                                                                                               
+      }                                                                                                                                                       
 ]
 
 def get_embedding(text: str) -> str:
@@ -153,6 +171,74 @@ def tool_get_max_expense(db: Session, month: int = None, year: int = None) -> st
           return "No encontre gastos con estos criterios"
      return f"El mayor gasto fue: ${float(transaction.amount):,.2f} - {transaction.description} - Fecha: {transaction.transaction_date}" 
 
+def tool_get_max_income(db, month=None, year=None):
+     query = db.query(Transaction).filter(Transaction.type == TransactionType.income)
+
+     try:
+          if month:
+               query = query.filter(extract('month', Transaction.transaction_date) == int(month))
+          if year:
+               query = query.filter(extract('year', Transaction.transaction_date) == int(year))
+     except (ValueError, TypeError):
+          pass
+
+     tx = query.order_by(Transaction.amount.desc()).first()
+     if not tx:
+          return "No se encontraron ingresos."
+     return f"El mayor ingreso encontrado fue: ${tx.amount:,.2f} - {tx.description} - Fecha: {tx.transaction_date}"
+
+def tool_get_top_expenses(db: Session, limit: int = 5, month=None, year=None) -> str:
+     query = db.query(Transaction).filter(Transaction.type == TransactionType.expense)
+
+     try:
+          if month:
+               query = query.filter(extract('month', Transaction.transaction_date) == int(month))
+          if year:
+               query = query.filter(extract('year', Transaction.transaction_date) == int(year))
+     except (ValueError, TypeError):
+          pass
+
+     transactions = query.order_by(Transaction.amount.desc()).limit(int(limit)).all()
+
+     if not transactions:
+          return "No se encontraron gastos con estos criterios"
+     
+     result = f"Top {len(transactions)} gastos:\n"
+     for i, t in enumerate(transactions, 1):
+          result += f"{i}. ${float(t.amount):,.2f} - {t.description} - {t.transaction_date}\n"
+     return result
+
+def tool_get_category_summary(db: Session, category: str, month=None, year=None) -> str:
+     if not category:
+          return "Necesito el nombre de una categoria."
+     
+     query = db.query(Transaction).join(Category).filter(Category.name.ilike(f"%{category}%"))
+
+     try:
+          if month:
+               query = query.filter(extract('month', Transaction.transaction_date) == int(month))
+          if year:
+               query = query.filter(extract('year', Transaction.transaction_date) == int(year))
+     except (ValueError, TypeError):
+          pass
+     transactions = query.all()
+     if not transactions:
+          return f"No se encontraron transacciones para la categoria '{category}'."
+     
+     total = sum(float(t.amount) for t in transactions)
+     average = total / len(transactions)
+
+     result = f"Resumen categoria '{category}':\n"
+     result += f"- Total: ${total:,.2f}\n"
+     result += f"- Transacciones: {len(transactions)}\n"
+     result += f"- Promedio: ${average:,.2f}\n"
+     result += f"- Mayor gasto: ${max(float(t.amount) for t in transactions):,.2f}\n\n"
+     result += "Detalle:\n"
+
+     for t in transactions[:10]:
+          result += f" - {t.transaction_date}: ${float(t.amount):,.2f} - {t.description}\n"
+     return result
+
 def tool_list_categories(db: Session) -> str:
      categories = db.query(Category).all()
 
@@ -211,5 +297,11 @@ def execute_tool(tool_name: str, params: dict, db: Session) -> str:
           return tool_list_categories(db)   
      elif tool_name == "insert_transaction":
           return tool_insert_transaction(db, params.get("amount"), params.get("description"), params.get("type"), params.get("category"), params.get("date_str"))                                                                                                                    
+     elif tool_name == "get_max_income":
+          return tool_get_max_income(db, params.get("month"), params.get("year"))
+     elif tool_name == "get_top_expenses":
+          return tool_get_top_expenses(db, params.get("limit", 5), params.get("month"), params.get("year"))
+     elif tool_name == "get_category_summary":
+          return tool_get_category_summary(db, params.get("category"), params.get("month"), params.get("year"))
      else:                                                                                                                                                     
           return f"Tool '{tool_name}' no encontrada."

@@ -1,7 +1,9 @@
+import os
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from connection.database import get_db
-from connection.models import Category, Transaction, Source
+from connection.models import Category, Transaction, Source, Document, AnomalyFlag
+import shutil
 from api.read_docs import router
 from api.storage_docs import router_docs
 from api.search_docs import search
@@ -25,3 +27,26 @@ def get_categories(db: Session = Depends(get_db)):
 @app.get("/transactions")
 def get_transactions(db: Session = Depends(get_db)):
     return db.query(Transaction).all()
+
+@app.delete("/reset/")
+def reset_all(db: Session = Depends(get_db)):
+    db.query(AnomalyFlag).delete()
+    db.query(Transaction).delete()
+    db.query(Document).delete()
+    db.query(Category).delete()
+    db.commit()
+
+    try:
+        import chromadb
+        client = chromadb.HttpClient(host='chromadb', port=8000)
+        client.delete_collection("documents")
+        client.get_or_create_collection("documents")
+    except Exception as e:
+        pass
+
+    uploads_dir = "/app/uploads"
+    if os.path.exists(uploads_dir):
+        shutil.rmtree(uploads_dir)
+        os.makedirs(uploads_dir)
+
+    return {"message": "Reset completado"}

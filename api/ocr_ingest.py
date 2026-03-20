@@ -30,7 +30,7 @@ def extract_text_from_file(contents: bytes, filename: str) -> str:
         except Exception:
             text = ""
         if len(text.strip()) < 20:
-            images = convert_from_bytes(contents)
+            images = convert_from_bytes(contents, first_page=1, last_page=2) 
             for img in images:
                 text += pytesseract.image_to_string(img)
         
@@ -60,7 +60,7 @@ def parse_transaction_from_text(text: str) -> dict:
     """
 
     response = requests.post(OLLAMA_URL, json={
-        "model": "mistral:7b",
+        "model": "qwen2.5:3b",
         "prompt": prompt,
         "stream": False
     })

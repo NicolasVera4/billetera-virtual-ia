@@ -29,7 +29,10 @@ def build_system_prompt() -> str:
                     - Si no menciona fecha, NO envíes date_str (se usará la fecha de hoy)
                     - Palabras clave expense: gasté, pagué, compré, me cobraron
                     - Palabras clave income: cobré, recibí, me pagaron, me transfirieron
-               7- Si pregunta cual fue el mayor gasto o la transaccion mas cara -> usa "get_max_expense"
+               7. Si pregunta cual fue el mayor gasto o la transaccion mas cara -> usa "get_max_expense"
+               8. Usa get_max_income cuando pregunten por el mayor ingreso, ingreso más alto o ingreso máximo.
+               9. Usa get_top_expenses cuando pregunten por los mayores gastos, más caros o top N gastos. Si mencionan un número (ej: "top 3", "los 5 más caros", "los 5 gastos mas caros de abril en alimentos") pasalo como limit.                                                                                                                                                       
+               10. Usa get_category_summary cuando pidan un resumen, detalle o información de una categoría específica. 
 
                FORMATO DE RESPUESTA - responde SOLO con este JSON:
 
@@ -53,7 +56,7 @@ def call_llm(prompt: str) -> str:
      response = requests.post(
           OLLAMA_URL,
           json={
-               "model": "mistral:7b",
+               "model": "qwen2.5:3b",
                "prompt": prompt,
                "stream": False
           }

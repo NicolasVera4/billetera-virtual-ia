@@ -58,7 +58,8 @@ def call_llm(prompt: str) -> str:
           json={
                "model": "qwen2.5:3b",
                "prompt": prompt,
-               "stream": False
+               "stream": False,
+               "options": {"temperature": 0.1}
           }
      )
      response.raise_for_status()
@@ -81,9 +82,11 @@ def run_agent(question: str, db: Session) -> dict:
      params = parsed.get("params", {})
      tool_result = execute_tool(tool_name, params, db)
      
-     final_prompt = f"""Basándote en esta información:                                                                                                         
-                       {tool_result}                                                                                                                                                                                                                                                                                                               
-                        Responde de forma clara y concisa a la pregunta: {question}"""
+     final_prompt = f"""Basándote en esta información:
+                        {tool_result}
+
+                        Responde de forma amigable, cercana y en español a la pregunta: {question}
+                        Sé conciso pero cálido. Podés usar emojis ocasionalmente."""
 
      final_answer = call_llm(final_prompt)
      return {

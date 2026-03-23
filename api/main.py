@@ -1,5 +1,6 @@
 import os
 from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from connection.database import get_db
 from connection.models import Category, Transaction, Source, Document, AnomalyFlag
@@ -12,6 +13,13 @@ from api.agent.router import router_agent
 from api.ocr_ingest import router_ocr
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(router)
 app.include_router(router_docs)
 app.include_router(search)

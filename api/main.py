@@ -11,6 +11,7 @@ from api.search_docs import search
 from api.ask_user import router_rag
 from api.agent.router import router_agent
 from api.ocr_ingest import router_ocr
+from api.ml_analisis import router_ml
 
 app = FastAPI()
 
@@ -26,7 +27,7 @@ app.include_router(search)
 app.include_router(router_rag)
 app.include_router(router_agent)
 app.include_router(router_ocr)
-
+app.include_router(router_ml)
 
 @app.get("/categories")
 def get_categories(db: Session = Depends(get_db)):

@@ -13,7 +13,7 @@ COLLECTION = CHROMA_CLIENT.get_or_create_collection(name="documents")
 TOOLS = [                                                                                                                                                     
       {                                                                                                                                                         
           "name": "search_documents",                                                                                                                           
-          "description": "Busca información en documentos financieros (facturas, recibos). Usar cuando preguntan sobre contenido de documentos.",               
+          "description": "Busca información en documentos subidos: facturas, recibos y libros de finanzas. Usar cuando preguntan sobre consejos financieros, estrategias de ahorro, inversión, o contenido de documentos.",               
           "parameters": ["query"]                                                                                                                               
       },                                                                                                                                                        
       {                                                                                                                                                         

@@ -17,29 +17,35 @@ OLLAMA_URL = "http://ollama:11434/api/embed"
 CHROMA_CLIENT = chromadb.HttpClient(host='chromadb', port=8000)
 COLLECTION = CHROMA_CLIENT.get_or_create_collection(name="documents")
 
-def get_embedding(text: str) -> list:                                                                                                                         
-      response = requests.post(                                                                                                                                 
-          OLLAMA_URL,                                                                                                                                           
-          json={                                                                                                                                                
-              "model": "nomic-embed-text",                                                                                                                      
-              "input": text                                                                                                          
-          }                                                                                                                                                     
-      )                                                                                                                                                         
-      response.raise_for_status()                                                                                                                               
-      return response.json()["embeddings"][0]  
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 100
+
+def split_text(text: str) -> list[str]:
+    chunks = []
+    start = 0
+    while start < len(text):
+        end = start + CHUNK_SIZE
+        chunks.append(text[start:end])
+        start += CHUNK_SIZE - CHUNK_OVERLAP
+    return chunks
+
+def get_embedding(text: str) -> list:
+    response = requests.post(
+        OLLAMA_URL,
+        json={"model": "nomic-embed-text", "input": text}
+    )
+    response.raise_for_status()
+    return response.json()["embeddings"][0]
 
 @router_docs.post("/upload_docs/")
 async def upload_docs(file: UploadFile = File(...), db: Session = Depends(get_db)):
     if file.content_type != "application/pdf":
-        raise HTTPException(
-            status_code= 400,
-            detail= "tipo de archivo no valido"
-        )
+        raise HTTPException(status_code=400, detail="tipo de archivo no valido")
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")                                                                                                                          
-    filename = f"{timestamp}_{file.filename}"                                                                                                                                     
-    file_path = os.path.join(UPLOAD_DIR, filename)     
-    content = await file.read() 
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{timestamp}_{file.filename}"
+    file_path = os.path.join(UPLOAD_DIR, filename)
+    content = await file.read()
 
     with open(file_path, "wb") as f:
         f.write(content)
@@ -47,38 +53,40 @@ async def upload_docs(file: UploadFile = File(...), db: Session = Depends(get_db
     reader = PdfReader(io.BytesIO(content))
     num_pages = len(reader.pages)
     text = ""
-    
     for page in reader.pages:
         text += page.extract_text() + "\n"
 
-    documents = Document(
-        source_id=2,                                                                                                 
-        document_type=DocumentType.invoice,                                                                                                 
-        file_path=file_path,                                                                                                                                      
-        extracted_text=text 
+    document = Document(
+        source_id=None,
+        document_type=DocumentType.other,
+        file_path=file_path,
+        extracted_text=text
     )
-    db.add(documents)
+    db.add(document)
     db.commit()
-    db.refresh(documents)
+    db.refresh(document)
 
-    embedding = get_embedding(text)
+    chunks = split_text(text)
+    ids, embeddings, metadatas, docs = [], [], [], []
+    for i, chunk in enumerate(chunks):
+        embedding = get_embedding(chunk)
+        ids.append(f"{document.id}_{i}")
+        embeddings.append(embedding)
+        metadatas.append({
+            "document_id": document.id,
+            "file_path": document.file_path,
+            "document_type": "other",
+            "chunk_index": i
+        })
+        docs.append(chunk)
 
-    COLLECTION.add(                                                                                                                                               
-        ids=[str(documents.id)],                                                                                                                                  
-        embeddings=[embedding],                                                                                                                                   
-        metadatas=[{                                                                                                                                              
-            "document_id": documents.id,                                                                                                                          
-            "file_path": documents.file_path,                                                                                                                     
-            "document_type": "invoice"                                                                                                                            
-        }],                                                                                                                                                       
-        documents=[text[:8000]]                                                                                                    
-    )  
+    COLLECTION.add(ids=ids, embeddings=embeddings, metadatas=metadatas, documents=docs)
 
-    return {                                                                                                                                                      
-      "id": documents.id,                                                                                                                                        
-      "file_path": documents.file_path,                                                                                                                          
-      "pages": num_pages,                                                                                                                                       
-      "text_preview": text[:200] + "..." if len(text) > 200 else text,
-      "embedding_size": len(embedding),                                                                                          
-      "message": "Documento procesado correctamente"                                                                                                            
-    }   
+    return {
+        "id": document.id,
+        "file_path": document.file_path,
+        "pages": num_pages,
+        "chunks": len(chunks),
+        "text_preview": text[:200] + "..." if len(text) > 200 else text,
+        "message": "Documento procesado correctamente"
+    }

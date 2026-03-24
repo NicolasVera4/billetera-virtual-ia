@@ -32,7 +32,8 @@ def build_system_prompt() -> str:
                7. Si pregunta cual fue el mayor gasto o la transaccion mas cara -> usa "get_max_expense"
                8. Usa get_max_income cuando pregunten por el mayor ingreso, ingreso más alto o ingreso máximo.
                9. Usa get_top_expenses cuando pregunten por los mayores gastos, más caros o top N gastos. Si mencionan un número (ej: "top 3", "los 5 más caros", "los 5 gastos mas caros de abril en alimentos") pasalo como limit.                                                                                                                                                       
-               10. Usa get_category_summary cuando pidan un resumen, detalle o información de una categoría específica. 
+               10. Usa get_category_summary cuando pidan un resumen, detalle o información de una categoría específica.
+               11. Si el usuario pide consejos financieros, cómo ahorrar, cómo invertir, estrategias de dinero, o qué dice el libro -> usa "search_documents" con una query en inglés relacionada al tema (el libro está en inglés).
 
                FORMATO DE RESPUESTA - responde SOLO con este JSON:
 
@@ -65,6 +66,28 @@ def call_llm(prompt: str) -> str:
      response.raise_for_status()
      return response.json()["response"]
 
+def build_prompt(question: str, accumulated: list = []) -> str:
+     system_prompt = build_system_prompt()
+
+     if not accumulated:
+          return f"{system_prompt}\n\nPregunta del usuario: {question}"
+
+     context_lines = "\n".join([
+          f"- {item['tool']}: {item['result'][:400]}"
+          for item in accumulated
+     ])
+
+     return f"""{system_prompt}
+
+Pregunta del usuario: {question}
+
+Informacion ya recopilada:
+{context_lines}
+
+Con esta informacion, decide si necesitas OTRA herramienta diferente para responder mejor.
+No repitas una herramienta ya usada. Si ya tenes suficiente informacion, responde con {{"tool": "none", "params": {{}}}}.
+Responde SOLO con JSON."""
+
 def run_agent(question: str, db: Session) -> dict:
      system_prompt = build_system_prompt()
      full_prompt = f"{system_prompt}\n\nPregunta del usuario: {question}"
@@ -82,11 +105,21 @@ def run_agent(question: str, db: Session) -> dict:
      params = parsed.get("params", {})
      tool_result = execute_tool(tool_name, params, db)
      
-     final_prompt = f"""Basándote en esta información:
-                        {tool_result}
+     if tool_name == "search_documents":
+          final_prompt = f"""El siguiente texto proviene de un libro de finanzas personales:
 
-                        Responde de forma amigable, cercana y en español a la pregunta: {question}
-                        Sé conciso pero cálido. Podés usar emojis ocasionalmente."""
+                             {tool_result}
+
+                             Basándote ÚNICAMENTE en ese texto, responde en español de forma amigable y práctica a: {question}
+                             Traduce y adapta las ideas del libro al contexto del usuario. No inventes información que no esté en el texto.
+                             No uses markdown, asteriscos ni guiones bajos."""
+     else:
+          final_prompt = f"""Basándote en esta información:
+                             {tool_result}
+
+                             Responde de forma amigable, cercana y en español a la pregunta: {question}
+                             Sé conciso pero cálido. Podés usar emojis ocasionalmente.
+                             No uses markdown, asteriscos ni guiones bajos."""
 
      final_answer = call_llm(final_prompt)
      return {

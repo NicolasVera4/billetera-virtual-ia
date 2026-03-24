@@ -4,19 +4,31 @@ import StatsCard from '../components/dashboard/StatsCard'
 import MonthlyChart from '../components/dashboard/MonthlyChart'
 import CategoryChart from '../components/dashboard/CategoryChart'
 import TransactionList from '../components/dashboard/TransactionList'
+import ForecastChart from '../components/dashboard/ForecastChart'
+import AnomalyChart from '../components/dashboard/AnomalyChart'
 import { getTransactions, getCategories } from '../api/dashboard'
+import { getForecast, getAnomalies } from '../api/ml'
 
 const DashboardPage = () => {
   const [transactions, setTransactions] = useState([])
   const [categories, setCategories] = useState([])
+  const [forecast, setForecast] = useState(null)
+  const [anomalies, setAnomalies] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [txs, cats] = await Promise.all([getTransactions(), getCategories()])
+        const [txs, cats, fc, an] = await Promise.all([
+          getTransactions(),
+          getCategories(),
+          getForecast(),
+          getAnomalies()
+        ])
         setTransactions(txs)
         setCategories(cats)
+        setForecast(fc)
+        setAnomalies(an)
       } catch {
         console.error('Error cargando datos del dashboard')
       } finally {
@@ -63,6 +75,9 @@ const DashboardPage = () => {
                 <MonthlyChart transactions={transactions} />
                 <CategoryChart transactions={transactions} categories={categories} />
               </div>
+
+              <ForecastChart data={forecast} />
+              <AnomalyChart data={anomalies} />
 
               <TransactionList transactions={transactions} categories={categories} />
             </>

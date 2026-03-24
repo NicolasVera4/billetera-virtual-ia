@@ -35,7 +35,7 @@ def generate_response(prompt:str) -> str:
      response = requests.post(
           OLLAMA_URL_GENERATE,
           json={
-               "model": "mistral:7b",
+               "model": "qwen2.5:3b",
                "prompt": prompt,
                "stream": False
           }

@@ -31,6 +31,15 @@ export const askAgentStream = async (question, onTool, onChunk, onDone) => {
   }
 }
 
+export const transcribeAudio = async (audioBlob) => {
+  const form = new FormData()
+  form.append('audio', audioBlob, 'recording.webm')
+  const res = await API.post('/transcribe/', form, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return res.data.text
+}
+
 export const uploadFile = async (file) => {
   const form = new FormData()
   form.append('file', file)

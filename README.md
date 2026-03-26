@@ -1,94 +1,129 @@
-# Enterprise Finance AI
+# Qash — Sistema Financiero Inteligente con LLM
 
-Sistema de gestion financiera inteligente que combina una API REST, una base de datos relacional, un motor de busqueda vectorial y un LLM local para automatizar la ingesta, clasificacion y consulta de datos financieros.
+Aplicacion de finanzas personales que combina un agente conversacional multi-step, RAG sobre documentos, Machine Learning, OCR y entrada por voz, todo corriendo localmente con Docker.
 
 ## Arquitectura
+![Arquitectuta](./image/arquitectura.png)
 
-![Arquitectura del sistema](image/Arquitectura.png)
-
-**Stack tecnologico:**
+## Stack Tecnologico
 
 | Componente | Tecnologia | Funcion |
 |---|---|---|
-| API | FastAPI + Python 3.11 | Backend REST |
-| Base de datos | PostgreSQL 14 | Transacciones, documentos, categorias |
+| Frontend | React + Vite + Recharts | Interfaz de usuario y graficos |
+| API | FastAPI + Python 3.11 | Backend REST + streaming SSE |
 | ORM | SQLAlchemy | Mapeo objeto-relacional |
-| Vector DB | ChromaDB 0.6.3 | Embeddings de documentos |
-| LLM | Ollama (Mistral 7B) | Mapeo de columnas, clasificacion, agente |
-| Embeddings | nomic-embed-text | Vectorizacion de texto |
+| Base de datos | PostgreSQL 14 | Almacen de movimiento, documentos, etc |
+| Vector DB | ChromaDB | Embeddings y busqueda semantica |
+| LLM | Ollama (qwen2.5:3b) | Agente, mapeo de columnas, clasificacion |
+| Embeddings | nomic-embed-text | Vectorizacion de texto para RAG |
+| STT | faster-whisper (base) | Transcripcion de audio a texto |
+| ML | scikit-learn | Prediccion de gastos y deteccion de anomalias |
+| OCR | Tesseract + pdf2image | Extraccion de texto desde imagenes y PDFs |
 | Contenedores | Docker Compose | Orquestacion de servicios |
 
 ## Funcionalidades
 
 ### 1. Pipeline de Ingesta Inteligente (`POST /upload_data/`)
 
-Sube cualquier archivo CSV o Excel (.xlsx) con datos financieros. El sistema:
+Acepta cualquier CSV o Excel con datos financieros, sin formato fijo:
 
 1. Detecta el formato del archivo automaticamente
-2. Envia las columnas y datos de ejemplo al LLM
-3. El LLM mapea las columnas al schema de la BD (fecha, monto, tipo, descripcion, moneda)
-4. Clasifica las descripciones unicas en categorias existentes o nuevas usando el LLM
-5. Inserta hasta 500 transacciones por archivo
+2. Envia las columnas y ejemplos al LLM
+3. El LLM mapea columnas al schema de la BD y clasifica descripciones en categorias
+4. Inserta hasta 500 transacciones por archivo
 
-**No requiere un formato fijo de columnas.** Funciona con archivos en cualquier idioma y estructura, siempre que contengan datos financieros.
+![Ingesta](./image/secuencia-ingesta.png)
 
-### 2. Almacenamiento de Documentos (`POST /upload_docs/`)
+### 2. OCR para Facturas y Recibos (`POST /upload_factura/`)
 
-Sube archivos PDF (facturas, recibos, estados de cuenta). El sistema:
+Acepta imagenes (PNG, JPG) y PDFs escaneados:
+
+1. Convierte el PDF a imagen si es necesario
+2. Extrae el texto con Tesseract OCR
+3. El LLM interpreta los datos (monto, fecha, descripcion, tipo)
+4. Inserta la transaccion automaticamente
+
+![OCR](./image/OCR.png)
+
+### 3. RAG — Documentos Financieros (`POST /upload_docs/`)
+
+Carga libros o documentos PDF para consultarlos desde el agente:
 
 1. Extrae el texto del PDF
-2. Genera embeddings con nomic-embed-text
-3. Almacena el documento en PostgreSQL y los embeddings en ChromaDB
+2. Divide el texto en chunks de 1000 caracteres con 100 de overlap
+3. Genera embeddings con nomic-embed-text para cada chunk
+4. Almacena en ChromaDB indexado por documento y chunk
 
-### 3. Busqueda Semantica de Documentos (`GET /documents/search?q=...`)
+![RAG](./image/RAG.png)
 
-Busca documentos por similitud semantica. Usa embeddings para encontrar los documentos mas relevantes a una consulta en lenguaje natural.
+### 4. Agente Financiero Conversacional con Streaming (`POST /agent/stream`)
 
-### 4. RAG - Preguntas sobre Documentos (`POST /ask?question=...`)
-
-Responde preguntas basandose en el contenido de los documentos subidos:
-
-1. Busca documentos relevantes en ChromaDB
-2. Arma un contexto con los resultados
-3. El LLM genera una respuesta basada en ese contexto
-
-### 5. Agente Financiero (`POST /agent?question=...`)
-
-Un agente conversacional con acceso a herramientas:
+Agente multi-step con patron ReAct. Encadena hasta 2 herramientas antes de responder:
 
 | Herramienta | Funcion |
 |---|---|
-| `search_documents` | Busca en documentos financieros |
-| `query_transactions` | Consulta transacciones por categoria o tipo |
-| `get_summary` | Resume financiero con totales de ingresos, gastos y balance |
+| `query_transactions` | Consulta transacciones por categoria, tipo, mes o año |
+| `get_summary` | Resumen con totales de ingresos, gastos y balance |
 | `list_categories` | Lista todas las categorias disponibles |
+| `insert_transaction` | Registra una nueva transaccion desde lenguaje natural |
+| `get_max_expense` | Devuelve la transaccion de mayor gasto |
+| `get_max_income` | Devuelve el mayor ingreso registrado |
+| `get_top_expenses` | Top N gastos mas altos (con filtro por mes/categoria) |
+| `get_category_summary` | Detalle de una categoria especifica |
+| `search_documents` | Busqueda semantica en documentos subidos (RAG) |
 
-El agente decide automaticamente que herramienta usar segun la pregunta:
-- *"Cuanto gaste en total?"* -> `get_summary`
-- *"Que categorias tengo?"* -> `list_categories`
-- *"Mostrame los gastos de Rent"* -> `query_transactions`
+Las respuestas se envian en streaming via **Server-Sent Events (SSE)**, mostrando cada token a medida que el LLM lo genera.
 
-### 6. Consultas Directas
+Ejemplo de flujo multi-step:
+- *"En que me puede ayudar el libro para mejorar mis finanzas?"*
+  - Step 1: `get_summary` → obtiene balance real del usuario
+  - Step 2: `search_documents` → busca consejos relevantes en el libro
+  - Respuesta final: combina datos reales + consejos del libro
 
-- `GET /categories` - Lista todas las categorias
-- `GET /transactions` - Lista todas las transacciones
+![AGENT](./image/agent.png)
+
+### 5. Machine Learning (`GET /ml/forecast` y `GET /ml/anomalies`)
+
+**Prediccion de gastos** con regresion lineal:
+- Agrupa transacciones por mes
+- Entrena un modelo `LinearRegression` con el historial
+- Predice el gasto del proximo mes (clampeado a 0 para evitar negativos)
+- Devuelve el R² score como indicador de calidad
+
+**Deteccion de anomalias** con IsolationForest:
+- Normaliza features con `StandardScaler`
+- Aplica `IsolationForest` sobre [gasto mensual, ingreso mensual]
+- Marca los meses con comportamiento inusual como anomalos
+
+### 6. Entrada por Voz (`POST /transcribe/`)
+
+Graba audio desde el microfono en el frontend y lo transcribe:
+
+1. `MediaRecorder` captura el audio en el browser
+2. Se envia el blob de audio al backend
+3. `faster-whisper` transcribe con el modelo `base` en español
+4. El texto aparece en el input del chat listo para editar y enviar
+
+Incluye visualizacion de onda de audio en tiempo real con Web Audio API.
+
+
 
 ## Modelo de Datos
 
-![Modelo de datos](image/modelo_de_datos.png)
+![Entrada por voz](./image/talk.png)
 
 ## Requisitos
 
 - Docker y Docker Compose
-- 8 GB de RAM minimo (Ollama con Mistral 7B requiere ~4-5 GB)
-- Puertos disponibles: 3000, 5050, 5432, 8000, 8012, 11434
+- 4 GB de RAM minimo (qwen2.5:3b requiere ~2 GB)
+- Puertos disponibles: 5173, 5432, 5050, 8000, 8012, 11434
 
-## Instalacion y Ejecucion
+## Instalacion
 
 ### 1. Clonar el repositorio
 
 ```bash
-git clone <url-del-repositorio>
+git clone https://github.com/NicolasVera4/billetera-virtual-ia
 cd billetera-proyecto
 ```
 
@@ -98,120 +133,39 @@ cd billetera-proyecto
 docker compose up --build
 ```
 
-La primera vez descarga las imagenes y construye los contenedores. Puede tomar varios minutos.
+La primera vez descarga imagenes y construye los contenedores. Puede tomar varios minutos.
 
 ### 3. Descargar los modelos de Ollama
 
-Una vez que el contenedor de Ollama este corriendo:
-
 ```bash
-docker exec -it ollama ollama pull mistral:7b
+docker exec -it ollama ollama pull qwen2.5:3b
 docker exec -it ollama ollama pull nomic-embed-text
 ```
 
-### 4. Verificar
-
-- API: http://localhost:8000/docs (Swagger UI)
-- pgAdmin: http://localhost:5050 (email: `developer@peperina.io`, password: `passpeperina`)
-- Ollama WebUI: http://localhost:3000
-
-## Como Probar
-
-### Subir un archivo CSV
+### 4. Levantar el frontend
 
 ```bash
-curl -X POST http://localhost:8000/upload_data/ \
-  -F "file=@data/transactions.csv"
+cd frontend
+npm install
+npm run dev
 ```
 
-Respuesta esperada:
-```json
-{
-  "message": "Successfully inserted 11 transactions",
-  "inserted": 11,
-  "categories_created": 11,
-  "columns_detected": ["transaction_date", "amount", "currency", "type", "category", "description", "source"],
-  "mapping_used": { ... }
-}
-```
+### 5. Verificar
 
-### Subir un archivo Excel
-
-```bash
-curl -X POST http://localhost:8000/upload_data/ \
-  -F "file=@data/bank_statement.xlsx"
-```
-
-### Subir un documento PDF
-
-```bash
-curl -X POST http://localhost:8000/upload_docs/ \
-  -F "file=@mi_factura.pdf"
-```
-
-### Preguntar al agente
-
-```bash
-curl -X POST "http://localhost:8000/agent?question=Cuanto%20gaste%20en%20total"
-```
-
-### Buscar documentos
-
-```bash
-curl "http://localhost:8000/documents/search?q=factura%20electricidad"
-```
-
-### Preguntar sobre documentos (RAG)
-
-```bash
-curl -X POST "http://localhost:8000/ask?question=Cual%20es%20el%20total%20de%20la%20factura"
-```
-
-## Estructura del Proyecto
-
-```
-billetera-proyecto/
-├── api/
-│   ├── main.py              # Entry point FastAPI, registra routers
-│   ├── read_docs.py          # Pipeline ingesta CSV/XLSX inteligente
-│   ├── storage_docs.py       # Upload y embedding de PDFs
-│   ├── search_docs.py        # Busqueda semantica de documentos
-│   ├── ask_user.py           # RAG - preguntas sobre documentos
-│   └── agent/
-│       ├── agent.py          # Logica del agente (tool selection + LLM)
-│       ├── tools.py          # Herramientas del agente (query, summary, search)
-│       └── router.py         # Endpoint del agente
-├── connection/
-│   ├── database.py           # Conexion SQLAlchemy a PostgreSQL
-│   └── models.py             # Modelos ORM (Transaction, Category, etc.)
-├── docker/
-│   ├── Dockerfile            # Imagen Python + FastAPI
-│   └── requirements.txt      # Dependencias Python
-├── sql/
-│   └── create.sql            # Schema inicial de la BD
-├── data/                     # Archivos de ejemplo para pruebas
-│   ├── transactions.csv
-│   ├── bank_statement.xlsx
-│   └── movimientos_mixto.csv
-├── docker-compose.yml        # Orquestacion de 6 servicios
-└── README.md
-```
-
-## Proximos Pasos
-
-- **OCR para facturas/recibos**: Soporte para imagenes (PNG, JPG) y PDFs escaneados, extraccion de datos con OCR e insercion automatica como transacciones
-- **Categorias bilingues**: Nombre en ingles y español para cada categoria, respuestas del agente en el idioma de la pregunta
-- **Deteccion de anomalias**: Identificar transacciones inusuales usando la tabla `anomaly_flags`
-- **Dashboard**: Interfaz web para visualizar gastos, ingresos y tendencias
-- **Deduplicacion**: Evitar insertar transacciones duplicadas al subir el mismo archivo multiples veces
+| Servicio | URL |
+|---|---|
+| Frontend (Qash) | http://localhost:5173 |
+| API Swagger | http://localhost:8000/docs |
+| pgAdmin | http://localhost:5050 |
+| Ollama | http://localhost:11434 |
 
 ## Servicios y Puertos
 
 | Servicio | Puerto | Descripcion |
 |---|---|---|
+| Frontend React | 5173 | Interfaz de usuario |
 | FastAPI | 8000 | API REST principal |
 | PostgreSQL | 5432 | Base de datos relacional |
 | pgAdmin | 5050 | Administracion de BD |
 | Ollama | 11434 | Servidor LLM local |
-| Ollama WebUI | 3000 | Interfaz chat para LLM |
 | ChromaDB | 8012 | Base de datos vectorial |

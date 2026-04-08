@@ -1,0 +1,18 @@
+# Uploads de usuarios
+uploads/
+
+# Datos persistentes de servicios
+chromadb/
+pgdata/
+
+# Variables de entorno
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Node
+frontend/node_modules/
+frontend/dist/

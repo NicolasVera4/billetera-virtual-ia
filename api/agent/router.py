@@ -1,14 +1,16 @@
-import json 
-import requests as req
+import os
+import json
+from groq import Groq
 from fastapi.responses import StreamingResponse
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from connection.database import get_db
-from api.agent.agent import run_agent, build_system_prompt, build_prompt, parse_tool_response, call_llm
+from api.agent.agent import run_agent, build_prompt, parse_tool_response, call_llm
 from api.agent.tools import execute_tool
 from pydantic import BaseModel
 
-OLLAMA_URL = "http://ollama:11434/api/generate"
+groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+GROQ_MODEL = "llama-3.1-8b-instant"
 router_agent = APIRouter()
 
 class AgentRequest(BaseModel):
@@ -62,23 +64,18 @@ IMPORTANTE:
 - Presenta los datos EXACTAMENTE como aparecen arriba, sin modificarlos
 - Sé conciso y cálido, podés usar emojis"""
 
-        response = req.post(OLLAMA_URL, json={
-            "model": "qwen2.5:3b",
-            "prompt": final_prompt,
-            "stream": True,
-            "options": {"temperature": 0.5}
-        }, stream=True)
-
         last_tool = tools_used[-1] if tools_used else None
-        for line in response.iter_lines():
-            if line:
-                data = json.loads(line)
-                chunk = data.get("response", "")
-                if chunk:
-                    yield f"data: {json.dumps({'type': 'chunk', 'text': chunk})}\n\n"
-                if data.get("done"):
-                    yield f"data: {json.dumps({'type': 'done', 'tool': last_tool})}\n\n"
-                    break
+        stream = groq_client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[{"role": "user", "content": final_prompt}],
+            temperature=0.5,
+            stream=True
+        )
+        for chunk in stream:
+            text = chunk.choices[0].delta.content or ""
+            if text:
+                yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
+        yield f"data: {json.dumps({'type': 'done', 'tool': last_tool})}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 

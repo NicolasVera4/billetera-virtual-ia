@@ -1,4 +1,5 @@
 import io
+import os
 import pytesseract
 from PIL import Image
 from pdf2image import convert_from_bytes
@@ -7,13 +8,14 @@ from fastapi import APIRouter, UploadFile, File, Depends
 from sqlalchemy.orm import Session
 from connection.database import get_db
 from connection.models import Transaction, Category, TransactionType
-import requests
+from groq import Groq
 import json
 import re
 from datetime import datetime, date
 
 router_ocr = APIRouter()
-OLLAMA_URL = "http://ollama:11434/api/generate"
+groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+GROQ_MODEL = "llama-3.1-8b-instant"
 
 def extract_text_from_file(contents: bytes, filename: str) -> str:
     name = filename.lower()
@@ -59,12 +61,13 @@ def parse_transaction_from_text(text: str) -> dict:
     Solo responde el JSON, sin texto adicional.
     """
 
-    response = requests.post(OLLAMA_URL, json={
-        "model": "qwen2.5:3b",
-        "prompt": prompt,
-        "stream": False
-    })
-    raw = response.json().get("response", "")
+    completion = groq_client.chat.completions.create(
+        model=GROQ_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.1,
+        stream=False
+    )
+    raw = completion.choices[0].message.content
 
     match = re.search(r'\{[\s\S]*\}', raw)
     if not match:

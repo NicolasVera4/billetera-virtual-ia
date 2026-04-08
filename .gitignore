@@ -1,28 +1,18 @@
+# Uploads de usuarios
+uploads/
+
+# Datos persistentes de servicios
+chromadb/
+pgdata/
+
+# Variables de entorno
+.env
+
 # Python
 __pycache__/
 *.pyc
 *.pyo
-.venv/
 
-# Data - ignorar archivos pesados
-data/*.csv
-data/*.xlsx
-!data/transactions.csv
-!data/movimientos_mixto.csv
-
-# Docker volumes
-pgdata/
-chromadb/
-uploads/
-model_files/
-
-# Environment
-.env
-
-# IDE
-.vscode/
-.idea/
-
-# OS
-.DS_Store
-Thumbs.db
+# Node
+frontend/node_modules/
+frontend/dist/

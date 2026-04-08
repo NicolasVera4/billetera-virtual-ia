@@ -1,10 +1,12 @@
-import requests
+import os
 import json
 import re
+from groq import Groq
 from sqlalchemy.orm import Session
 from api.agent.tools import TOOLS, execute_tool
 
-OLLAMA_URL = "http://ollama:11434/api/generate"
+groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+GROQ_MODEL = "llama-3.1-8b-instant"
 
 def build_system_prompt() -> str:                                                                                                                                                                                                                      
       tools_desc = "\n".join([                                                                                                                                  
@@ -53,18 +55,14 @@ def parse_tool_response(response: str) -> dict:
           pass
      return{"tool": "none", "params": {}, "answer": response}
 
-def call_llm(prompt: str) -> str:
-     response = requests.post(
-          OLLAMA_URL,
-          json={
-               "model": "qwen2.5:3b",
-               "prompt": prompt,
-               "stream": False,
-               "options": {"temperature": 0.1}
-          }
+def call_llm(prompt: str, temperature: float = 0.1) -> str:
+     completion = groq_client.chat.completions.create(
+          model=GROQ_MODEL,
+          messages=[{"role": "user", "content": prompt}],
+          temperature=temperature,
+          stream=False
      )
-     response.raise_for_status()
-     return response.json()["response"]
+     return completion.choices[0].message.content
 
 def build_prompt(question: str, accumulated: list = []) -> str:
      system_prompt = build_system_prompt()

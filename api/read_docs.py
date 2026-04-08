@@ -1,29 +1,27 @@
 import io
+import os
 import json
 import re
-import requests
 import pandas as pd
+from groq import Groq
 from fastapi import File, UploadFile, APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from connection.database import get_db
 from connection.models import Category, Transaction, TransactionType
 
-
 router = APIRouter()
-OLLAMA_URL = "http://ollama:11434/api/generate" 
 MAX_ROWS = 500
+groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+GROQ_MODEL = "llama-3.1-8b-instant"
 
 def call_llm(prompt: str) -> str:
-     response = requests.post(
-          OLLAMA_URL,
-          json={
-               "model": "qwen2.5:3b",
-               "prompt": prompt,
-               "stream": False
-          }
+     completion = groq_client.chat.completions.create(
+          model=GROQ_MODEL,
+          messages=[{"role": "user", "content": prompt}],
+          temperature=0.1,
+          stream=False
      )
-     response.raise_for_status()
-     return response.json()["response"]
+     return completion.choices[0].message.content
 
 def detect_and_read(filename, content) -> pd.DataFrame:
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""

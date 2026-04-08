@@ -14,8 +14,8 @@ Aplicacion de finanzas personales que combina un agente conversacional multi-ste
 | ORM | SQLAlchemy | Mapeo objeto-relacional |
 | Base de datos | PostgreSQL 14 | Almacen de movimiento, documentos, etc |
 | Vector DB | ChromaDB | Embeddings y busqueda semantica |
-| LLM | Ollama (qwen2.5:3b) | Agente, mapeo de columnas, clasificacion |
-| Embeddings | nomic-embed-text | Vectorizacion de texto para RAG |
+| LLM | Groq API (llama-3.1-8b-instant) | Agente, mapeo de columnas, clasificacion, OCR |
+| Embeddings | Ollama (nomic-embed-text) | Vectorizacion de texto para RAG |
 | STT | faster-whisper (base) | Transcripcion de audio a texto |
 | ML | scikit-learn | Prediccion de gastos y deteccion de anomalias |
 | OCR | Tesseract + pdf2image | Extraccion de texto desde imagenes y PDFs |
@@ -115,8 +115,9 @@ Incluye visualizacion de onda de audio en tiempo real con Web Audio API.
 ## Requisitos
 
 - Docker y Docker Compose
-- 4 GB de RAM minimo (qwen2.5:3b requiere ~2 GB)
-- Puertos disponibles: 5173, 5432, 5050, 8000, 8012, 11434
+- 4 GB de RAM minimo
+- API Key de Groq (`GROQ_API_KEY`) — registro gratuito en console.groq.com
+- Puertos disponibles: 5173, 5432, 5050, 8000, 8012, 11434, 3000
 
 ## Instalacion
 
@@ -127,7 +128,15 @@ git clone https://github.com/NicolasVera4/billetera-virtual-ia
 cd billetera-proyecto
 ```
 
-### 2. Levantar los servicios
+### 2. Configurar variables de entorno
+
+Crear un archivo `.env` en la raiz del proyecto:
+
+```bash
+GROQ_API_KEY=tu_api_key_aqui
+```
+
+### 3. Levantar los servicios
 
 ```bash
 docker compose up --build
@@ -135,14 +144,13 @@ docker compose up --build
 
 La primera vez descarga imagenes y construye los contenedores. Puede tomar varios minutos.
 
-### 3. Descargar los modelos de Ollama
+### 4. Descargar el modelo de embeddings
 
 ```bash
-docker exec -it ollama ollama pull qwen2.5:3b
 docker exec -it ollama ollama pull nomic-embed-text
 ```
 
-### 4. Levantar el frontend
+### 5. Levantar el frontend
 
 ```bash
 cd frontend
@@ -150,7 +158,7 @@ npm install
 npm run dev
 ```
 
-### 5. Verificar
+### 6. Verificar
 
 | Servicio | URL |
 |---|---|
@@ -158,6 +166,7 @@ npm run dev
 | API Swagger | http://localhost:8000/docs |
 | pgAdmin | http://localhost:5050 |
 | Ollama | http://localhost:11434 |
+| Ollama WebUI | http://localhost:3000 |
 
 ## Servicios y Puertos
 
@@ -167,5 +176,6 @@ npm run dev
 | FastAPI | 8000 | API REST principal |
 | PostgreSQL | 5432 | Base de datos relacional |
 | pgAdmin | 5050 | Administracion de BD |
-| Ollama | 11434 | Servidor LLM local |
+| Ollama | 11434 | Servidor de embeddings local |
+| Ollama WebUI | 3000 | Interfaz web para Ollama |
 | ChromaDB | 8012 | Base de datos vectorial |
